@@ -49,6 +49,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- AWS Textract (extracts text from images) -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>textract</artifactId>
+            <version>2.25.60</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
