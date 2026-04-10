@@ -4,14 +4,19 @@ target/
 # Node / frontend
 src/main/client/node_modules/
 src/main/client/dist/
+src/main/client/dist-ssr/
+src/main/client/*.local
 
 # macOS
 .DS_Store
+**/.DS_Store
 
 # IDE
 .idea/
 *.iml
 .vscode/
+*.suo
+*.sw?
 
 # Environment / secrets
 .env
@@ -20,3 +25,11 @@ src/main/client/dist/
 
 # Logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Keep empty package directories
+!**/.gitkeep
