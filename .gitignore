@@ -1,0 +1,22 @@
+# Maven build output
+target/
+
+# Node / frontend
+src/main/client/node_modules/
+src/main/client/dist/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Logs
+*.log
