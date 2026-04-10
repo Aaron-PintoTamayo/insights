@@ -49,6 +49,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- PostgreSQL driver -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- AWS Textract (extracts text from images) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

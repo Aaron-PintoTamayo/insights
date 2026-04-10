@@ -23,6 +23,11 @@ src/main/client/*.local
 .env.*
 *.env
 
+# Spring Boot config (contains DB credentials)
+src/main/resources/application.properties
+src/main/resources/application*.properties
+src/main/resources/application*.yml
+
 # Logs
 *.log
 logs/
