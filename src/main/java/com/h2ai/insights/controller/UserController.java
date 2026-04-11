@@ -17,10 +17,18 @@ public class UserController {
 
     private final UserService userService;
 
-    // POST /api/users/upload — upload patient image, extract data, save
+    // POST /api/users/upload — upload a clinical file, extract data with Claude, save
     @PostMapping("/upload")
-    public ResponseEntity<User> uploadPatientImage(@RequestParam("image") MultipartFile image) throws IOException {
-        User saved = userService.extractAndSaveUser(image);
+    public ResponseEntity<User> uploadPatientFile(
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "image", required = false) MultipartFile image
+    ) throws IOException {
+        MultipartFile uploaded = file != null ? file : image;
+        if (uploaded == null || uploaded.isEmpty()) {
+            throw new IllegalArgumentException("Upload a non-empty file using form-data key 'file'");
+        }
+
+        User saved = userService.extractAndSaveUser(uploaded);
         return ResponseEntity.ok(saved);
     }
 
@@ -28,6 +36,12 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    // GET /api/users/search?name=smith — search patients by name
+    @GetMapping("/search")
+    public ResponseEntity<List<User>> searchPatients(@RequestParam(value = "name", required = false) String name) {
+        return ResponseEntity.ok(userService.searchPatientsByName(name));
     }
 
     // GET /api/users/{id} — get one patient by id

@@ -1,17 +1,14 @@
 package com.h2ai.insights.service;
 
 import com.h2ai.insights.entity.User;
+import com.h2ai.insights.exception.IncompletePatientInfoException;
 import com.h2ai.insights.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.textract.TextractClient;
-import software.amazon.awssdk.services.textract.model.DetectDocumentTextRequest;
-import software.amazon.awssdk.services.textract.model.DetectDocumentTextResponse;
-import software.amazon.awssdk.services.textract.model.Document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,12 +16,15 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final TextractClient textractClient;
+    private final ClaudeIntakeService claudeIntakeService;
 
-    // Upload an image, extract text via Textract, parse into a User, and save
+    // Upload a file, extract structured fields with Claude, and save the User.
     public User extractAndSaveUser(MultipartFile image) throws IOException {
-        String extractedText = extractTextFromImage(image);
-        User user = parseTextToUser(extractedText);
+        User user = claudeIntakeService.extractUserFromFile(image);
+        List<String> missingFields = findMissingRequiredFields(user);
+        if (!missingFields.isEmpty()) {
+            throw new IncompletePatientInfoException(missingFields);
+        }
         return userRepository.save(user);
     }
 
@@ -32,28 +32,32 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public List<User> searchPatientsByName(String name) {
+        if (isBlank(name)) {
+            return userRepository.findAll();
+        }
+        return userRepository.findByNameContainingIgnoreCaseOrderByNameAsc(name.trim());
+    }
+
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow();
     }
 
-    // --- Private helpers ---
+    private List<String> findMissingRequiredFields(User user) {
+        List<String> missing = new ArrayList<>();
 
-    private String extractTextFromImage(MultipartFile image) throws IOException {
-        SdkBytes imageBytes = SdkBytes.fromByteArray(image.getBytes());
+        if (isBlank(user.getName())) missing.add("name");
+        if (user.getAge() == null) missing.add("age");
+        if (user.getGender() == null) missing.add("gender");
+        if (user.getDiagnosisDate() == null) missing.add("diagnosisDate");
+        if (user.getPriorMalignancy() == null) missing.add("priorMalignancy");
+        if (user.getPriorTreatment() == null) missing.add("priorTreatment");
+        if (user.getEcogPerformanceStatus() == null) missing.add("ecogPerformanceStatus");
 
-        DetectDocumentTextRequest request = DetectDocumentTextRequest.builder()
-                .document(Document.builder().bytes(imageBytes).build())
-                .build();
-
-        DetectDocumentTextResponse response = textractClient.detectDocumentText(request);
-
-        // TODO: join all detected lines into one string
-        return null;
+        return missing;
     }
 
-    private User parseTextToUser(String text) {
-        // TODO: parse the extracted text and map fields onto a User object
-        User user = new User();
-        return user;
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

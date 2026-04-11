@@ -36,5 +36,17 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Test artifacts
+coverage/
+**/coverage/
+.nyc_output/
+
+# Local temp files
+*.tmp
+*.temp
+*.pid
+*.seed
+*.stackdump
+
 # Keep empty package directories
 !**/.gitkeep

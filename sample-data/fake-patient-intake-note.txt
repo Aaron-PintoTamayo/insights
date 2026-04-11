@@ -1,0 +1,40 @@
+H2AI CLINICAL INTAKE NOTE
+Generated Test Document - Not Real Patient Data
+
+Patient Name: Michael Carter
+Age: 61
+Gender: MALE
+Diagnosis Date: 2024-03-18
+Prior Malignancy: No
+Prior Treatment: Yes
+ECOG Performance Status: 1
+
+Chief Concern:
+Newly diagnosed acute myeloid leukemia with fatigue, reduced exercise tolerance,
+and intermittent bruising over the past 2 months.
+
+Brief Clinical Summary:
+The patient presents with newly confirmed AML and reports progressive fatigue.
+Functional status remains relatively preserved, with mild limitations in strenuous
+activity. No history of prior malignancy. The patient reports prior treatment history
+for a separate chronic non-malignant hematologic condition.
+
+Structured Fields for Model Intake:
+- name: Michael Carter
+- age: 61
+- gender: MALE
+- diagnosisDate: 2024-03-18
+- priorMalignancy: false
+- priorTreatment: true
+- ecogPerformanceStatus: 1
+
+Follow-up Outcome Template (for later updates):
+- actualOutcome: [e.g., Alive at 12 months]
+- actualOutcomeDate: [YYYY-MM-DD]
+- overallSurvivalMonths: [numeric]
+- deceased: [true/false]
+- fractionGenomeAltered: [numeric]
+- mutationCount: [integer]
+- tmbNonsynonymous: [numeric]
+- yearOfDiagnosis: [YYYY]
+- actualOutcomeNotes: [free text]
