@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Test artifacts
+coverage
+.nyc_output
+
+# Local temp files
+*.tmp
+*.temp
+*.pid
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
