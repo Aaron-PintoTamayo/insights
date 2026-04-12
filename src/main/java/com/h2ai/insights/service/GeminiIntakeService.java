@@ -24,35 +24,39 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class ClaudeIntakeService {
+public class GeminiIntakeService {
 
     private static final String SYSTEM_PROMPT = "You are a clinical intake extraction engine. " +
             "Extract only the requested fields and return strict JSON only.";
 
-    private static final String USER_PROMPT = "Extract these fields from the uploaded clinical file. " +
-            "Return ONLY valid JSON with this exact shape: " +
+        private static final String USER_PROMPT = "Extract these fields from the uploaded clinical file. " +
+            "Return ONLY valid JSON with this exact shape and exact key names: " +
             "{\"name\": string|null, \"age\": number|null, \"mutation_count\": number|null, " +
             "\"TMB\": number|null, \"fga\": number|null, \"sex\": \"Male\"|\"Female\"|\"Unknown\"|null, " +
             "\"race\": \"WHITE\"|\"BLACK OR AFRICAN AMERICAN\"|\"ASIAN\"|" +
             "\"AMERICAN INDIAN OR ALASKA NATIVE\"|\"NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER\"|\"Unknown\"|null, " +
             "\"ethnicity\": \"NOT HISPANIC OR LATINO\"|\"HISPANIC OR LATINO\"|\"Unknown\"|null}. " +
-            "Do not include markdown or extra keys.";
+            "Do not include markdown or extra keys. " +
+            "Map aliases to these exact keys (for example mutationCount->mutation_count, mutation count->mutation_count, " +
+            "tmbNonsynonymous->TMB, fractionGenomeAltered->fga, gender->sex). " +
+            "Normalize sex values to exactly Male, Female, or Unknown; preserve race and ethnicity labels exactly from the allowed values. " +
+            "If a numeric value has units or percent symbols, strip units and return only the numeric value.";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${anthropic.api.url}")
-    private String anthropicApiUrl;
+    @Value("${gemini.api.url}")
+    private String geminiApiUrl;
 
-    @Value("${anthropic.api.key}")
-    private String anthropicApiKey;
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
 
-    @Value("${anthropic.model}")
-    private String anthropicModel;
+    @Value("${gemini.model}")
+    private String geminiModel;
 
     public User extractUserFromFile(MultipartFile file) throws IOException {
-        if (anthropicApiKey == null || anthropicApiKey.isBlank()) {
-            throw new IllegalStateException("ANTHROPIC_API_KEY is not configured");
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+            throw new IllegalStateException("GEMINI_API_KEY is not configured");
         }
 
         String contentType = normalizeContentType(file.getContentType(), file.getOriginalFilename());
@@ -60,73 +64,61 @@ public class ClaudeIntakeService {
         String base64 = Base64.getEncoder().encodeToString(bytes);
 
         Map<String, Object> requestBody = contentType.equals(MediaType.TEXT_PLAIN_VALUE)
-                ? buildClaudeTextRequest(new String(bytes, StandardCharsets.UTF_8))
-                : buildClaudeRequest(contentType, base64);
+                ? buildGeminiTextRequest(new String(bytes, StandardCharsets.UTF_8))
+                : buildGeminiRequest(contentType, base64);
 
-        String rawResponse = callClaude(requestBody);
+        String rawResponse = callGemini(requestBody);
         JsonNode extracted = extractJsonPayload(rawResponse);
 
         return toUser(extracted);
     }
 
-    private Map<String, Object> buildClaudeTextRequest(String clinicalText) {
+    private Map<String, Object> buildGeminiTextRequest(String clinicalText) {
         Map<String, Object> promptPart = new LinkedHashMap<>();
-        promptPart.put("type", "text");
         promptPart.put("text", USER_PROMPT + "\n\nClinical text:\n" + clinicalText);
 
-        Map<String, Object> message = new LinkedHashMap<>();
-        message.put("role", "user");
-        message.put("content", List.of(promptPart));
+        Map<String, Object> systemPart = new LinkedHashMap<>();
+        systemPart.put("text", SYSTEM_PROMPT);
+
+        Map<String, Object> userContent = new LinkedHashMap<>();
+        userContent.put("role", "user");
+        userContent.put("parts", List.of(promptPart));
 
         Map<String, Object> request = new LinkedHashMap<>();
-        request.put("model", anthropicModel);
-        request.put("max_tokens", 1024);
-        request.put("system", SYSTEM_PROMPT);
-        request.put("messages", List.of(message));
+        request.put("system_instruction", Map.of("parts", List.of(systemPart)));
+        request.put("contents", List.of(userContent));
         return request;
     }
 
-    private Map<String, Object> buildClaudeRequest(String contentType, String base64Data) {
-        Map<String, Object> mediaSource = new LinkedHashMap<>();
-        mediaSource.put("type", "base64");
-        mediaSource.put("media_type", contentType);
-        mediaSource.put("data", base64Data);
-
+    private Map<String, Object> buildGeminiRequest(String contentType, String base64Data) {
         Map<String, Object> filePart = new LinkedHashMap<>();
-        if (contentType.startsWith("image/")) {
-            filePart.put("type", "image");
-        } else {
-            filePart.put("type", "document");
-        }
-        filePart.put("source", mediaSource);
+        filePart.put("inline_data", Map.of("mime_type", contentType, "data", base64Data));
 
         Map<String, Object> promptPart = new LinkedHashMap<>();
-        promptPart.put("type", "text");
         promptPart.put("text", USER_PROMPT);
 
-        Map<String, Object> message = new LinkedHashMap<>();
-        message.put("role", "user");
-        message.put("content", List.of(promptPart, filePart));
+        Map<String, Object> systemPart = new LinkedHashMap<>();
+        systemPart.put("text", SYSTEM_PROMPT);
+
+        Map<String, Object> userContent = new LinkedHashMap<>();
+        userContent.put("role", "user");
+        userContent.put("parts", List.of(promptPart, filePart));
 
         Map<String, Object> request = new LinkedHashMap<>();
-        request.put("model", anthropicModel);
-        request.put("max_tokens", 1024);
-        request.put("system", SYSTEM_PROMPT);
-        request.put("messages", List.of(message));
+        request.put("system_instruction", Map.of("parts", List.of(systemPart)));
+        request.put("contents", List.of(userContent));
         return request;
     }
 
-    private String callClaude(Map<String, Object> requestBody) {
+    private String callGemini(Map<String, Object> requestBody) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-api-key", anthropicApiKey);
-        headers.set("anthropic-version", "2023-06-01");
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
         ResponseEntity<String> response;
         try {
             response = restTemplate.exchange(
-                    anthropicApiUrl,
+                    resolveGeminiEndpoint(),
                     HttpMethod.POST,
                     entity,
                     String.class
@@ -134,25 +126,30 @@ public class ClaudeIntakeService {
         } catch (RestClientResponseException ex) {
             String body = ex.getResponseBodyAsString();
             String suffix = (body == null || body.isBlank()) ? "" : ": " + body;
-            throw new IllegalStateException("Claude intake request failed with status " + ex.getRawStatusCode() + suffix);
+            throw new IllegalStateException("Gemini intake request failed with status " + ex.getRawStatusCode() + suffix);
         }
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("Claude intake request failed with status " + response.getStatusCode());
+            throw new IllegalStateException("Gemini intake request failed with status " + response.getStatusCode());
         }
 
         return response.getBody();
     }
 
-    private JsonNode extractJsonPayload(String rawClaudeResponse) throws IOException {
-        JsonNode root = objectMapper.readTree(rawClaudeResponse);
-        JsonNode content = root.path("content");
-        if (!content.isArray() || content.isEmpty()) {
-            throw new RuntimeException("Claude response did not contain content blocks");
+    private JsonNode extractJsonPayload(String rawGeminiResponse) throws IOException {
+        JsonNode root = objectMapper.readTree(rawGeminiResponse);
+        JsonNode candidates = root.path("candidates");
+        if (!candidates.isArray() || candidates.isEmpty()) {
+            throw new RuntimeException("Gemini response did not contain candidates");
+        }
+
+        JsonNode parts = candidates.get(0).path("content").path("parts");
+        if (!parts.isArray() || parts.isEmpty()) {
+            throw new RuntimeException("Gemini response did not contain content parts");
         }
 
         String text = null;
-        for (JsonNode block : content) {
+        for (JsonNode block : parts) {
             String candidate = block.path("text").asText(null);
             if (candidate != null && !candidate.isBlank()) {
                 text = candidate;
@@ -161,12 +158,22 @@ public class ClaudeIntakeService {
         }
 
         if (text == null) {
-            throw new IllegalStateException("Claude response did not contain a text block");
+            throw new IllegalStateException("Gemini response did not contain a text block");
         }
 
         text = text.replace("```json", "").replace("```", "").trim();
 
         return objectMapper.readTree(text);
+    }
+
+    private String resolveGeminiEndpoint() {
+        String base = geminiApiUrl == null || geminiApiUrl.isBlank()
+                ? "https://generativelanguage.googleapis.com/v1beta"
+                : geminiApiUrl.trim();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/models/" + geminiModel + ":generateContent?key=" + geminiApiKey;
     }
 
     private User toUser(JsonNode node) {

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -113,7 +114,10 @@ public class PredictionService {
         record.setEstimatedMedianSurvivalMonths(clinician != null ? clinician.getEstimatedMedianSurvivalMonths() : null);
         record.setPlainLanguageSummary(clinician != null ? clinician.getPlainLanguageSummary() : null);
         record.setKeyDrivers(clinician != null && clinician.getKeyDrivers() != null
-                ? String.join(", ", clinician.getKeyDrivers())
+            ? clinician.getKeyDrivers().stream()
+                .filter(Objects::nonNull)
+                .map(SurvivalPredictionResponse.KeyDriver::toSummary)
+                .collect(Collectors.joining(", "))
                 : null);
         record.setTechnicalOutput(prediction.getTechnicalOutput() != null ? prediction.getTechnicalOutput().toString() : null);
         record.setExpectedOutcome(buildExpectedOutcome(record));

@@ -16,11 +16,11 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final ClaudeIntakeService claudeIntakeService;
+    private final GeminiIntakeService geminiIntakeService;
 
-    // Upload a file, extract structured fields with Claude, and save the User.
+    // Upload a file, extract structured fields with Gemini, and save the User.
     public User extractAndSaveUser(MultipartFile image) throws IOException {
-        User user = claudeIntakeService.extractUserFromFile(image);
+        User user = geminiIntakeService.extractUserFromFile(image);
         List<String> missingFields = findMissingRequiredFields(user);
         if (!missingFields.isEmpty()) {
             throw new IncompletePatientInfoException(missingFields);

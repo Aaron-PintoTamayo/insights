@@ -17,7 +17,7 @@ public class UserController {
 
     private final UserService userService;
 
-    // POST /api/users/upload — upload a clinical file, extract data with Claude, save
+    // POST /api/users/upload — upload a clinical file, extract data with Gemini, save
     @PostMapping("/upload")
     public ResponseEntity<User> uploadPatientFile(
             @RequestParam(value = "file", required = false) MultipartFile file,

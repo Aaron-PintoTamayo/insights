@@ -36,7 +36,23 @@ public class SurvivalPredictionResponse {
         private String plainLanguageSummary;
 
         @JsonProperty("key_drivers")
-        private List<String> keyDrivers;
+        private List<KeyDriver> keyDrivers;
+    }
+
+    @Getter
+    @Setter
+    public static class KeyDriver {
+        private String feature;
+        private Double coefficient;
+        private Double value;
+        private Double contribution;
+        private String direction;
+
+        public String toSummary() {
+            String featureText = feature == null ? "unknown_feature" : feature;
+            String directionText = direction == null ? "has mixed impact" : direction;
+            return featureText + " " + directionText;
+        }
     }
 
     @Getter

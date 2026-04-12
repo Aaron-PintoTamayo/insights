@@ -2,8 +2,10 @@ H2AI CLINICAL INTAKE NOTE
 Generated Test Document - Not Real Patient Data
 
 Patient Name: Michael Carter
-Age: 61
-Gender: MALE
+Age: 65
+Gender: Male
+Race: WHITE
+Ethnicity: NOT HISPANIC OR LATINO
 Diagnosis Date: 2024-03-18
 Prior Malignancy: No
 Prior Treatment: Yes
@@ -21,8 +23,13 @@ for a separate chronic non-malignant hematologic condition.
 
 Structured Fields for Model Intake:
 - name: Michael Carter
-- age: 61
-- gender: MALE
+- age: 65
+- sex: Male
+- race: WHITE
+- ethnicity: NOT HISPANIC OR LATINO
+- mutation_count: 12
+- TMB: 0.4
+- fga: 0.12
 - diagnosisDate: 2024-03-18
 - priorMalignancy: false
 - priorTreatment: true
