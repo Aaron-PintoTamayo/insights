@@ -3,7 +3,6 @@ package com.h2ai.insights.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.h2ai.insights.dto.OutcomeUpdateRequest;
 import com.h2ai.insights.dto.PredictionRecordResponse;
-import com.h2ai.insights.dto.TrainingSyncResponse;
 import com.h2ai.insights.service.PredictionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,27 +56,12 @@ class PredictionControllerTest {
     }
 
     @Test
-    void predictAll_shouldReturnBulkRecords() throws Exception {
-        when(predictionService.predictAll(eq("smith")))
-                .thenReturn(List.of(sampleRecord(201L, 21L, "Bob Smith"), sampleRecord(202L, 22L, "Ana Smith")));
-
-        mockMvc.perform(post("/api/predictions/predict-all").param("name", "smith"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].predictionId").value(201))
-                .andExpect(jsonPath("$[1].predictionId").value(202));
-    }
-
-    @Test
     void searchPredictions_shouldReturnRecords() throws Exception {
-        when(predictionService.search("jane", 30, 80, "High", "Alive"))
+        when(predictionService.search("jane"))
                 .thenReturn(List.of(sampleRecord(301L, 31L, "Jane Roe")));
 
         mockMvc.perform(get("/api/predictions/search")
-                        .param("name", "jane")
-                        .param("minAge", "30")
-                        .param("maxAge", "80")
-                        .param("riskGroup", "High")
-                        .param("actualOutcome", "Alive"))
+                        .param("name", "jane"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].patientName").value("Jane Roe"));
     }
@@ -92,25 +76,13 @@ class PredictionControllerTest {
         OutcomeUpdateRequest request = new OutcomeUpdateRequest();
         request.setActualOutcome("Alive at 12 months");
         request.setActualOutcomeDate(LocalDate.of(2026, 1, 10));
-        request.setOverallSurvivalMonths(12.0);
-        request.setDeceased(false);
+        request.setActualOutcomeNotes("Follow-up confirms no progression");
 
         mockMvc.perform(patch("/api/predictions/401/outcome")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.actualOutcome").value("Alive at 12 months"));
-    }
-
-    @Test
-    void syncTraining_shouldReturnSummary() throws Exception {
-        when(predictionService.syncLabeledOutcomesToRetrainingApi())
-                .thenReturn(new TrainingSyncResponse(3, 5, "Synced labeled outcomes to retraining API"));
-
-        mockMvc.perform(post("/api/predictions/sync-training"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.sentRecords").value(3))
-                .andExpect(jsonPath("$.totalLabeledRecords").value(5));
     }
 
     private PredictionRecordResponse sampleRecord(Long predictionId, Long patientId, String patientName) {
@@ -122,10 +94,9 @@ class PredictionControllerTest {
         response.setSurvival6mo(0.82);
         response.setSurvival12mo(0.64);
         response.setSurvival24mo(0.41);
-        response.setPartialHazard(1.12);
+        response.setRiskScore(1.12);
         response.setRiskGroup("High Risk");
-        response.setInterpretation("Pseudo interpretation");
-        response.setSurvivalCurvePng("base64_png");
+        response.setPlainLanguageSummary("Patient has elevated risk compared to baseline.");
         response.setExpectedOutcome("Risk Group: High Risk, Expected 12-month survival: 64%");
         response.setCreatedAt(LocalDateTime.of(2026, 4, 11, 10, 0));
         return response;

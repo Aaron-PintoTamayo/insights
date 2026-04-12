@@ -1,7 +1,6 @@
 package com.h2ai.insights.controller;
 
 import com.h2ai.insights.entity.User;
-import com.h2ai.insights.enums.Gender;
 import com.h2ai.insights.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -83,11 +81,12 @@ class UserControllerTest {
         patient.setId(id);
         patient.setName(name);
         patient.setAge(61);
-        patient.setGender(Gender.MALE);
-        patient.setDiagnosisDate(LocalDate.of(2023, 1, 5));
-        patient.setPriorMalignancy(false);
-        patient.setPriorTreatment(true);
-        patient.setEcogPerformanceStatus(1);
+        patient.setMutationCount(42);
+        patient.setTmb(3.5);
+        patient.setFga(0.21);
+        patient.setSex("Male");
+        patient.setRace("WHITE");
+        patient.setEthnicity("NOT HISPANIC OR LATINO");
         return patient;
     }
 }

@@ -50,6 +50,8 @@ describe('App workflow', () => {
           survival12mo: 0.6,
           survival24mo: 0.4,
           riskGroup: 'High Risk',
+          riskScore: 1.24,
+          plainLanguageSummary: 'Higher risk than baseline.',
         })
       }
       return jsonResponse(404, { message: 'Not found' })
@@ -72,27 +74,7 @@ describe('App workflow', () => {
     expect(await screen.findByText('Prediction record created: #101')).toBeInTheDocument()
   })
 
-  test('runs bulk prediction from intake tab', async () => {
-    const fetchMock = vi.fn(async (url, options = {}) => {
-      if (url === '/api/users') return jsonResponse(200, [{ id: 1, name: 'Alice Smith' }])
-      if (url === '/api/predictions/search') return jsonResponse(200, [])
-      if (url === '/api/predictions/predict-all' && options.method === 'POST') {
-        return jsonResponse(200, [{ predictionId: 201 }, { predictionId: 202 }])
-      }
-      return jsonResponse(404, { message: 'Not found' })
-    })
-
-    global.fetch = fetchMock
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    await user.click(await screen.findByRole('button', { name: 'Predict All (Filtered)' }))
-
-    expect(await screen.findByText('Bulk prediction complete: 2 record(s) created')).toBeInTheDocument()
-  })
-
-  test('updates outcome and triggers retrain sync from outcomes tab', async () => {
+  test('updates outcome from outcomes tab', async () => {
     const fetchMock = vi.fn(async (url, options = {}) => {
       if (url === '/api/users') return jsonResponse(200, [])
       if (url === '/api/predictions/search') {
@@ -108,13 +90,6 @@ describe('App workflow', () => {
       if (url === '/api/predictions/301/outcome' && options.method === 'PATCH') {
         return jsonResponse(200, { predictionId: 301, actualOutcome: 'Alive at 12 months' })
       }
-      if (url === '/api/predictions/sync-training' && options.method === 'POST') {
-        return jsonResponse(200, {
-          status: 'Synced labeled outcomes to retraining API',
-          sentRecords: 1,
-          totalLabeledRecords: 1,
-        })
-      }
       return jsonResponse(404, { message: 'Not found' })
     })
 
@@ -123,23 +98,13 @@ describe('App workflow', () => {
 
     render(<App />)
 
-    await user.click(await screen.findByRole('button', { name: 'Outcomes + Retrain' }))
+    await user.click(await screen.findByRole('button', { name: 'Outcomes' }))
     await user.click(await screen.findByRole('button', { name: 'Select for Outcome Update' }))
 
     await user.type(screen.getByPlaceholderText('actualOutcome'), 'Alive at 12 months')
-    await user.type(screen.getByPlaceholderText('overallSurvivalMonths'), '12')
-    await user.selectOptions(screen.getByDisplayValue('deceased?'), 'false')
-    await user.type(screen.getByPlaceholderText('fractionGenomeAltered'), '0.2')
-    await user.type(screen.getByPlaceholderText('mutationCount'), '40')
-    await user.type(screen.getByPlaceholderText('tmbNonsynonymous'), '3.1')
-    await user.type(screen.getByPlaceholderText('yearOfDiagnosis'), '2024')
+    await user.type(screen.getByPlaceholderText('actualOutcomeNotes'), 'Clinical follow-up stable.')
 
     await user.click(screen.getByRole('button', { name: 'Save Outcome Data' }))
     expect(await screen.findByText('Actual outcome updated.')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Send Outcome-Labeled Data to Retrain' }))
-    expect(
-      await screen.findByText('Synced labeled outcomes to retraining API (1/1)'),
-    ).toBeInTheDocument()
   })
 })

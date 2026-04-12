@@ -33,14 +33,18 @@ public class PredictionRecord {
     private Double survival6mo;
     private Double survival12mo;
     private Double survival24mo;
-    private Double partialHazard;
+    private Double riskScore;
     private String riskGroup;
+    private Double estimatedMedianSurvivalMonths;
 
     @Column(columnDefinition = "TEXT")
-    private String interpretation;
+    private String plainLanguageSummary;
 
     @Column(columnDefinition = "TEXT")
-    private String survivalCurvePng;
+    private String keyDrivers;
+
+    @Column(columnDefinition = "TEXT")
+    private String technicalOutput;
 
     @Column(columnDefinition = "TEXT")
     private String expectedOutcome;
@@ -50,18 +54,10 @@ public class PredictionRecord {
 
     private LocalDate actualOutcomeDate;
 
-    private Double overallSurvivalMonths;
-    private Boolean deceased;
-    private Double fractionGenomeAltered;
-    private Integer mutationCount;
-    private Double tmbNonsynonymous;
-    private Integer yearOfDiagnosis;
-
     @Column(columnDefinition = "TEXT")
     private String actualOutcomeNotes;
 
     private LocalDateTime createdAt;
-    private LocalDateTime retrainSyncedAt;
 
     @PrePersist
     void prePersist() {

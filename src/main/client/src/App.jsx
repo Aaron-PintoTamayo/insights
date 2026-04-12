@@ -29,21 +29,13 @@ function App() {
     actualOutcome: '',
     actualOutcomeDate: '',
     actualOutcomeNotes: '',
-    overallSurvivalMonths: '',
-    deceased: '',
-    fractionGenomeAltered: '',
-    mutationCount: '',
-    tmbNonsynonymous: '',
-    yearOfDiagnosis: '',
   })
 
   const [busy, setBusy] = useState({
     upload: false,
     predict: false,
-    predictAll: false,
     searchHistory: false,
     saveOutcome: false,
-    sync: false,
   })
 
   const [error, setError] = useState('')
@@ -90,10 +82,11 @@ function App() {
     }
   }
 
-  async function loadHistory() {
+  async function loadHistory(name = '') {
     setBusy((b) => ({ ...b, searchHistory: true }))
     try {
-      const res = await fetch('/api/predictions/search')
+      const query = name.trim() ? `?name=${encodeURIComponent(name.trim())}` : ''
+      const res = await fetch(`/api/predictions/search${query}`)
       if (!res.ok) throw new Error(`Could not load prediction records (${res.status})`)
       const data = await res.json()
       setHistory(Array.isArray(data) ? data : [])
@@ -149,22 +142,6 @@ function App() {
     }
   }
 
-  async function handlePredictAll() {
-    setBusy((b) => ({ ...b, predictAll: true }))
-    try {
-      const query = patientSearch.trim() ? `?name=${encodeURIComponent(patientSearch.trim())}` : ''
-      const res = await fetch(`/api/predictions/predict-all${query}`, { method: 'POST' })
-      if (!res.ok) throw new Error(await parseError(res, `Bulk prediction failed (${res.status})`))
-      const records = await res.json()
-      await loadHistory()
-      setInfoMsg(`Bulk prediction complete: ${records.length} record(s) created`)
-    } catch (err) {
-      setErrorMsg(err.message || 'Bulk prediction failed')
-    } finally {
-      setBusy((b) => ({ ...b, predictAll: false }))
-    }
-  }
-
   async function handleSaveOutcome(event) {
     event.preventDefault()
     if (!selectedRecordId) return setErrorMsg('Select a prediction record first.')
@@ -176,14 +153,6 @@ function App() {
         actualOutcome: outcomeForm.actualOutcome,
         actualOutcomeDate: outcomeForm.actualOutcomeDate || null,
         actualOutcomeNotes: outcomeForm.actualOutcomeNotes || null,
-        overallSurvivalMonths: outcomeForm.overallSurvivalMonths ? Number(outcomeForm.overallSurvivalMonths) : null,
-        deceased: outcomeForm.deceased === '' ? null : outcomeForm.deceased === 'true',
-        fractionGenomeAltered: outcomeForm.fractionGenomeAltered
-          ? Number(outcomeForm.fractionGenomeAltered)
-          : null,
-        mutationCount: outcomeForm.mutationCount ? Number(outcomeForm.mutationCount) : null,
-        tmbNonsynonymous: outcomeForm.tmbNonsynonymous ? Number(outcomeForm.tmbNonsynonymous) : null,
-        yearOfDiagnosis: outcomeForm.yearOfDiagnosis ? Number(outcomeForm.yearOfDiagnosis) : null,
       }
 
       const res = await fetch(`/api/predictions/${selectedRecordId}/outcome`, {
@@ -201,27 +170,6 @@ function App() {
       setBusy((b) => ({ ...b, saveOutcome: false }))
     }
   }
-
-  async function handleSyncRetrain() {
-    setBusy((b) => ({ ...b, sync: true }))
-    try {
-      const res = await fetch('/api/predictions/sync-training', { method: 'POST' })
-      if (!res.ok) throw new Error(await parseError(res, `Retrain sync failed (${res.status})`))
-      const data = await res.json()
-      setInfoMsg(`${data.status} (${data.sentRecords}/${data.totalLabeledRecords})`)
-    } catch (err) {
-      setErrorMsg(err.message || 'Retrain sync failed')
-    } finally {
-      setBusy((b) => ({ ...b, sync: false }))
-    }
-  }
-
-  const curveSource =
-    prediction?.survivalCurvePng && prediction.survivalCurvePng.startsWith('data:')
-      ? prediction.survivalCurvePng
-      : prediction?.survivalCurvePng
-        ? `data:image/png;base64,${prediction.survivalCurvePng}`
-        : ''
 
   return (
     <div className="workspace">
@@ -247,7 +195,7 @@ function App() {
             className={activeTab === 'outcomes' ? 'stage active-tab' : 'stage ghost'}
             onClick={() => setActiveTab('outcomes')}
           >
-            Outcomes + Retrain
+            Outcomes
           </button>
         </nav>
 
@@ -283,7 +231,7 @@ function App() {
             <article className="card">
               <header>
                 <h2>Step 2: Select and Score</h2>
-                <p>Search by name, choose patient, then run single or bulk prediction.</p>
+                <p>Search by name, choose one patient, and run one prediction.</p>
               </header>
 
               <div className="inline-row">
@@ -309,17 +257,16 @@ function App() {
                 <dl className="snapshot">
                   <div><dt>Name</dt><dd>{selectedPatient.name || 'Unknown'}</dd></div>
                   <div><dt>Age</dt><dd>{selectedPatient.age ?? 'Unknown'}</dd></div>
-                  <div><dt>Gender</dt><dd>{selectedPatient.gender || 'Unknown'}</dd></div>
-                  <div><dt>ECOG</dt><dd>{selectedPatient.ecogPerformanceStatus ?? 'Unknown'}</dd></div>
+                  <div><dt>Mutation Count</dt><dd>{selectedPatient.mutationCount ?? 'Unknown'}</dd></div>
+                  <div><dt>TMB</dt><dd>{selectedPatient.tmb ?? 'Unknown'}</dd></div>
+                  <div><dt>FGA</dt><dd>{selectedPatient.fga ?? 'Unknown'}</dd></div>
+                  <div><dt>Sex</dt><dd>{selectedPatient.sex || 'Unknown'}</dd></div>
                 </dl>
               )}
 
               <div className="inline-row">
                 <button type="button" onClick={handlePredict} disabled={busy.predict || !selectedPatientId}>
                   {busy.predict ? 'Predicting...' : 'Predict Selected Patient'}
-                </button>
-                <button type="button" className="ghost" onClick={handlePredictAll} disabled={busy.predictAll}>
-                  {busy.predictAll ? 'Predicting All...' : 'Predict All (Filtered)'}
                 </button>
               </div>
 
@@ -331,15 +278,10 @@ function App() {
                     <div><span>24mo</span><strong>{pct(prediction.survival24mo)}</strong></div>
                     <div><span>Risk</span><strong>{prediction.riskGroup || 'N/A'}</strong></div>
                   </div>
+                  <p className="micro-ok">Risk score: {prediction.riskScore ?? 'N/A'}</p>
+                  <p>{prediction.plainLanguageSummary || 'No clinician summary provided.'}</p>
                   <p className="micro-ok">Latest record: #{prediction.predictionId}</p>
                 </>
-              )}
-
-              {curveSource && (
-                <figure className="curve">
-                  <figcaption>Survival Curve</figcaption>
-                  <img src={curveSource} alt="Patient survival curve" />
-                </figure>
               )}
             </article>
           </section>
@@ -358,6 +300,16 @@ function App() {
                 </button>
               </header>
 
+              <div className="inline-row">
+                <input
+                  type="text"
+                  placeholder="Filter records by patient name"
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                />
+                <button type="button" className="ghost" onClick={() => loadHistory(patientSearch)}>Search</button>
+              </div>
+
               <div className="record-list">
                 {history.map((r) => (
                   <article key={r.predictionId} className={String(r.predictionId) === selectedRecordId ? 'record selected' : 'record'}>
@@ -375,32 +327,16 @@ function App() {
 
             <article className="card">
               <header>
-                <h2>Step 4: Outcome Capture and Retraining Sync</h2>
+                <h2>Step 4: Outcome Capture</h2>
                 <p>Selected prediction record: {selectedRecordId || 'none'}</p>
               </header>
 
               <form className="field-grid" onSubmit={handleSaveOutcome}>
                 <input type="text" placeholder="actualOutcome" value={outcomeForm.actualOutcome} onChange={(e) => setOutcomeForm((p) => ({ ...p, actualOutcome: e.target.value }))} />
                 <input type="date" value={outcomeForm.actualOutcomeDate} onChange={(e) => setOutcomeForm((p) => ({ ...p, actualOutcomeDate: e.target.value }))} />
-                <input type="number" step="0.1" placeholder="overallSurvivalMonths" value={outcomeForm.overallSurvivalMonths} onChange={(e) => setOutcomeForm((p) => ({ ...p, overallSurvivalMonths: e.target.value }))} />
-                <select value={outcomeForm.deceased} onChange={(e) => setOutcomeForm((p) => ({ ...p, deceased: e.target.value }))}>
-                  <option value="">deceased?</option>
-                  <option value="true">true</option>
-                  <option value="false">false</option>
-                </select>
-                <input type="number" step="0.01" placeholder="fractionGenomeAltered" value={outcomeForm.fractionGenomeAltered} onChange={(e) => setOutcomeForm((p) => ({ ...p, fractionGenomeAltered: e.target.value }))} />
-                <input type="number" placeholder="mutationCount" value={outcomeForm.mutationCount} onChange={(e) => setOutcomeForm((p) => ({ ...p, mutationCount: e.target.value }))} />
-                <input type="number" step="0.1" placeholder="tmbNonsynonymous" value={outcomeForm.tmbNonsynonymous} onChange={(e) => setOutcomeForm((p) => ({ ...p, tmbNonsynonymous: e.target.value }))} />
-                <input type="number" placeholder="yearOfDiagnosis" value={outcomeForm.yearOfDiagnosis} onChange={(e) => setOutcomeForm((p) => ({ ...p, yearOfDiagnosis: e.target.value }))} />
                 <textarea placeholder="actualOutcomeNotes" value={outcomeForm.actualOutcomeNotes} onChange={(e) => setOutcomeForm((p) => ({ ...p, actualOutcomeNotes: e.target.value }))} />
                 <button type="submit" disabled={busy.saveOutcome}>{busy.saveOutcome ? 'Saving...' : 'Save Outcome Data'}</button>
               </form>
-
-              <div className="inline-row">
-                <button type="button" onClick={handleSyncRetrain} disabled={busy.sync}>
-                  {busy.sync ? 'Sending...' : 'Send Outcome-Labeled Data to Retrain'}
-                </button>
-              </div>
             </article>
           </section>
         )}

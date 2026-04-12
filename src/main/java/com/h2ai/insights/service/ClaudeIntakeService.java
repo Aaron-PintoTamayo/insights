@@ -3,7 +3,6 @@ package com.h2ai.insights.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.h2ai.insights.entity.User;
-import com.h2ai.insights.enums.Gender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -18,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,9 +31,11 @@ public class ClaudeIntakeService {
 
     private static final String USER_PROMPT = "Extract these fields from the uploaded clinical file. " +
             "Return ONLY valid JSON with this exact shape: " +
-            "{\"name\": string|null, \"age\": number|null, \"gender\": \"MALE\"|\"FEMALE\"|null, " +
-            "\"diagnosisDate\": \"YYYY-MM-DD\"|null, \"priorMalignancy\": boolean|null, " +
-            "\"priorTreatment\": boolean|null, \"ecogPerformanceStatus\": number|null}. " +
+            "{\"name\": string|null, \"age\": number|null, \"mutation_count\": number|null, " +
+            "\"TMB\": number|null, \"fga\": number|null, \"sex\": \"Male\"|\"Female\"|\"Unknown\"|null, " +
+            "\"race\": \"WHITE\"|\"BLACK OR AFRICAN AMERICAN\"|\"ASIAN\"|" +
+            "\"AMERICAN INDIAN OR ALASKA NATIVE\"|\"NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER\"|\"Unknown\"|null, " +
+            "\"ethnicity\": \"NOT HISPANIC OR LATINO\"|\"HISPANIC OR LATINO\"|\"Unknown\"|null}. " +
             "Do not include markdown or extra keys.";
 
     private final RestTemplate restTemplate;
@@ -174,11 +174,12 @@ public class ClaudeIntakeService {
 
         user.setName(textOrNull(node, "name"));
         user.setAge(intOrNull(node, "age"));
-        user.setGender(genderOrNull(node, "gender"));
-        user.setDiagnosisDate(dateOrNull(node, "diagnosisDate"));
-        user.setPriorMalignancy(boolOrNull(node, "priorMalignancy"));
-        user.setPriorTreatment(boolOrNull(node, "priorTreatment"));
-        user.setEcogPerformanceStatus(intOrNull(node, "ecogPerformanceStatus"));
+        user.setMutationCount(intOrNull(node, "mutation_count"));
+        user.setTmb(doubleOrNull(node, "TMB"));
+        user.setFga(doubleOrNull(node, "fga"));
+        user.setSex(normalizeUnknown(textOrNull(node, "sex")));
+        user.setRace(normalizeUnknown(textOrNull(node, "race")));
+        user.setEthnicity(normalizeUnknown(textOrNull(node, "ethnicity")));
 
         return user;
     }
@@ -211,33 +212,18 @@ public class ClaudeIntakeService {
         return child.isMissingNode() || child.isNull() ? null : child.asInt();
     }
 
-    private Boolean boolOrNull(JsonNode node, String field) {
-        JsonNode child = node.path(field);
-        return child.isMissingNode() || child.isNull() ? null : child.asBoolean();
-    }
-
-    private LocalDate dateOrNull(JsonNode node, String field) {
+    private Double doubleOrNull(JsonNode node, String field) {
         JsonNode child = node.path(field);
         if (child.isMissingNode() || child.isNull()) {
             return null;
         }
-        try {
-            return LocalDate.parse(child.asText());
-        } catch (Exception ignored) {
-            return null;
-        }
+        return child.asDouble();
     }
 
-    private Gender genderOrNull(JsonNode node, String field) {
-        JsonNode child = node.path(field);
-        if (child.isMissingNode() || child.isNull()) {
-            return null;
+    private String normalizeUnknown(String value) {
+        if (value == null || value.isBlank()) {
+            return "Unknown";
         }
-
-        try {
-            return Gender.valueOf(child.asText().toUpperCase());
-        } catch (Exception ignored) {
-            return null;
-        }
+        return value;
     }
 }

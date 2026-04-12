@@ -10,14 +10,15 @@ public class PredictionRequest {
 
     private Integer age;
 
-    private String gender;
+    @JsonProperty("mutation_count")
+    private Integer mutationCount;
 
-    @JsonProperty("prior_malignancy")
-    private Boolean priorMalignancy;
+    @JsonProperty("TMB")
+    private Double tmb;
 
-    @JsonProperty("prior_treatment")
-    private Boolean priorTreatment;
+    private Double fga;
 
-    @JsonProperty("ecog_performance_status")
-    private Integer ecogPerformanceStatus;
+    private String sex;
+    private String race;
+    private String ethnicity;
 }

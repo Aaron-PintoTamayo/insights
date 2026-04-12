@@ -18,20 +18,16 @@ public class PredictionRecordResponse {
     private Double survival6mo;
     private Double survival12mo;
     private Double survival24mo;
-    private Double partialHazard;
+    private Double riskScore;
     private String riskGroup;
-    private String interpretation;
-    private String survivalCurvePng;
+    private Double estimatedMedianSurvivalMonths;
+    private String plainLanguageSummary;
+    private String keyDrivers;
+    private String technicalOutput;
 
     private String expectedOutcome;
     private String actualOutcome;
     private LocalDate actualOutcomeDate;
     private String actualOutcomeNotes;
-    private Double overallSurvivalMonths;
-    private Boolean deceased;
-    private Double fractionGenomeAltered;
-    private Integer mutationCount;
-    private Double tmbNonsynonymous;
-    private Integer yearOfDiagnosis;
     private LocalDateTime createdAt;
 }

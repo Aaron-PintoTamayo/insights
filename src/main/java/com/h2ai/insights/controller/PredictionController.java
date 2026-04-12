@@ -2,7 +2,6 @@ package com.h2ai.insights.controller;
 
 import com.h2ai.insights.dto.OutcomeUpdateRequest;
 import com.h2ai.insights.dto.PredictionRecordResponse;
-import com.h2ai.insights.dto.TrainingSyncResponse;
 import com.h2ai.insights.service.PredictionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,22 +30,11 @@ public class PredictionController {
         return ResponseEntity.ok(predictionService.predict(userId));
     }
 
-    @PostMapping("/predict-all")
-    public ResponseEntity<List<PredictionRecordResponse>> predictAll(
-            @RequestParam(value = "name", required = false) String name
-    ) {
-        return ResponseEntity.ok(predictionService.predictAll(name));
-    }
-
     @GetMapping("/search")
     public ResponseEntity<List<PredictionRecordResponse>> searchPredictions(
-            @RequestParam(value = "name", required = false) String name,
-            @RequestParam(value = "minAge", required = false) Integer minAge,
-            @RequestParam(value = "maxAge", required = false) Integer maxAge,
-            @RequestParam(value = "riskGroup", required = false) String riskGroup,
-            @RequestParam(value = "actualOutcome", required = false) String actualOutcome
+            @RequestParam(value = "name", required = false) String name
     ) {
-        return ResponseEntity.ok(predictionService.search(name, minAge, maxAge, riskGroup, actualOutcome));
+        return ResponseEntity.ok(predictionService.search(name));
     }
 
     @PatchMapping("/{predictionId}/outcome")
@@ -55,10 +43,5 @@ public class PredictionController {
             @RequestBody OutcomeUpdateRequest request
     ) {
         return ResponseEntity.ok(predictionService.updateActualOutcome(predictionId, request));
-    }
-
-    @PostMapping("/sync-training")
-    public ResponseEntity<TrainingSyncResponse> syncTrainingData() {
-        return ResponseEntity.ok(predictionService.syncLabeledOutcomesToRetrainingApi());
     }
 }

@@ -1,30 +1,54 @@
 package com.h2ai.insights.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
 public class SurvivalPredictionResponse {
 
-    @JsonProperty("survival_6mo")
-    private Double survival6mo;
+    @JsonProperty("clinician_output")
+    private ClinicianOutput clinicianOutput;
 
-    @JsonProperty("survival_12mo")
-    private Double survival12mo;
+    @JsonProperty("technical_output")
+    private JsonNode technicalOutput;
 
-    @JsonProperty("survival_24mo")
-    private Double survival24mo;
+    @Getter
+    @Setter
+    public static class ClinicianOutput {
+        @JsonProperty("risk_group")
+        private String riskGroup;
 
-    @JsonProperty("partial_hazard")
-    private Double partialHazard;
+        @JsonProperty("risk_score")
+        private Double riskScore;
 
-    @JsonProperty("risk_group")
-    private String riskGroup;
+        @JsonProperty("survival_probabilities")
+        private SurvivalProbabilities survivalProbabilities;
 
-    private String interpretation;
+        @JsonProperty("estimated_median_survival_months")
+        private Double estimatedMedianSurvivalMonths;
 
-    @JsonProperty("survival_curve_png")
-    private String survivalCurvePng;
+        @JsonProperty("plain_language_summary")
+        private String plainLanguageSummary;
+
+        @JsonProperty("key_drivers")
+        private List<String> keyDrivers;
+    }
+
+    @Getter
+    @Setter
+    public static class SurvivalProbabilities {
+        @JsonProperty("6_months")
+        private Double sixMonths;
+
+        @JsonProperty("12_months")
+        private Double twelveMonths;
+
+        @JsonProperty("24_months")
+        private Double twentyFourMonths;
+    }
 }

@@ -46,13 +46,10 @@ public class UserService {
     private List<String> findMissingRequiredFields(User user) {
         List<String> missing = new ArrayList<>();
 
-        if (isBlank(user.getName())) missing.add("name");
         if (user.getAge() == null) missing.add("age");
-        if (user.getGender() == null) missing.add("gender");
-        if (user.getDiagnosisDate() == null) missing.add("diagnosisDate");
-        if (user.getPriorMalignancy() == null) missing.add("priorMalignancy");
-        if (user.getPriorTreatment() == null) missing.add("priorTreatment");
-        if (user.getEcogPerformanceStatus() == null) missing.add("ecogPerformanceStatus");
+        if (user.getMutationCount() == null) missing.add("mutation_count");
+        if (user.getTmb() == null) missing.add("TMB");
+        if (user.getFga() == null) missing.add("fga");
 
         return missing;
     }
